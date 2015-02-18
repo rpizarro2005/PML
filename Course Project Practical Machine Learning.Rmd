@@ -1,0 +1,131 @@
+---
+title: "Course Project Practical Machine Learning"
+output: html_document
+---
+
+### Background
+
+"Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways."
+
+"You should create a report describing how you built your model, how you used cross validation, what you 
+think the expected out of sample error is, and why you made the choices you did. You will also use your 
+prediction model to predict 20 different test cases."
+
+### DATA
+
+```{r,results='hide', eval=FALSE}
+mydata <- read.csv("pml-training.csv")
+mydataTEST <- read.csv("pml-testing.csv")
+
+names(mydata)
+str(mydata)
+```
+
+There is 19.622 obs. of 160 variables. The first seven variables are not important for the question/task of classify how well the subjects performed the barbell lifts. Of the 153 remaining variables, there is so much derivatives variables (such as kurtosis, skewness, etc) that may be in a first intended model won't be neccesary. So, for the first intended model we will just use 52 variables.
+
+```{r,results='hide', eval=FALSE}
+library(caret)
+set.seed(123)
+inTrain <- createDataPartition(mydata$classe, p = .7, list = FALSE)
+training <- mydata[inTrain,]
+testing <- mydata[-inTrain,]
+trainingFinal <- training[, -c(1:7, 12:36, 50:59, 69:83, 87:112, 125:139, 141:150)]
+```
+
+### Algorithm
+
+The Random Forest algorithm seems a good alternative because: 1) the Training Set is large, 2) the Accuracy is a pro, 3) I know almost nothing about the relationships between the raw data and the "Classes"!
+
+The chosen "preProcess" and "trControl" are the most basics.
+
+```{r,eval=FALSE}
+model <- train(classe ~ ., preProcess = c("center", "scale"), method = "rf", data = trainingFinal, trControl = trainControl(method = "cv"))
+model
+```
+
+```
+Random Forest 
+
+14718 samples
+   51 predictor
+    5 classes: 'A', 'B', 'C', 'D', 'E' 
+
+Pre-processing: centered, scaled 
+Resampling: Cross-Validated (10 fold) 
+
+Summary of sample sizes: 13246, 13247, 13244, 13245, 13246, 13245, ... 
+
+Resampling results across tuning parameters:
+
+  mtry  Accuracy   Kappa      Accuracy SD  Kappa SD   
+   2    0.9930023  0.9911484  0.002460110  0.003110466
+  26    0.9936818  0.9920078  0.001567964  0.001982943
+  51    0.9870914  0.9836691  0.003035103  0.003839871
+
+Accuracy was used to select the optimal model using  the largest value.
+The final value used for the model was mtry = 26.
+```
+
+### It seems it's a very good fitting model...
+
+Should I risk with it?
+
+```{r,eval=FALSE}
+predictions <- predict(model, testing)
+confusionMatrix(pred, testing$classe)
+```
+
+``` 
+Confusion Matrix and Statistics
+
+          Reference
+Prediction    A    B    C    D    E
+         A 1390    4    0    0    0
+         B    2  944    2    1    0
+         C    2    1  851    6    0
+         D    0    0    2  796    3
+         E    1    0    0    1  898
+
+Overall Statistics
+                                          
+               Accuracy : 0.9949          
+                 95% CI : (0.9925, 0.9967)
+    No Information Rate : 0.2845          
+    P-Value [Acc > NIR] : < 2.2e-16       
+                                          
+                  Kappa : 0.9936          
+ Mcnemar's Test P-Value : NA              
+
+Statistics by Class:
+
+                     Class: A Class: B Class: C Class: D Class: E
+Sensitivity            0.9964   0.9947   0.9953   0.9900   0.9967
+Specificity            0.9989   0.9987   0.9978   0.9988   0.9995
+Pos Pred Value         0.9971   0.9947   0.9895   0.9938   0.9978
+Neg Pred Value         0.9986   0.9987   0.9990   0.9981   0.9993
+Prevalence             0.2845   0.1935   0.1743   0.1639   0.1837
+Detection Rate         0.2834   0.1925   0.1735   0.1623   0.1831
+Detection Prevalence   0.2843   0.1935   0.1754   0.1633   0.1835
+Balanced Accuracy      0.9976   0.9967   0.9965   0.9944   0.9981
+```
+
+### I sent the answers and I got 20 of 20! :-)
+
+```{r, eval=FALSE}
+answers <- predict(model, mydataTEST)
+answers
+
+answers <- as.character(answers)
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(answers)
+```
+
+### Conclusion
+
+I think Machine Learning is a very extensive (and growing) knowledge topic... What can I say about the "out of sample error" when I got 0% classification error in this exercise? Just that (seriously): there is a lot of long hours of work waiting for me so may be some day I really can say "I'm a Data Science competent guy". 
